@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль LLM интеграции для АИС УДЗ
+LLM клиент для работы с языковыми моделями
 """
 
-from .base_llm import BaseLLM, LLMResponse
-from .claude_client import ClaudeClient
+from .client import OpenAILikeClient
 
-__all__ = ["BaseLLM", "ClaudeClient"]
+__all__ = ["OpenAILikeClient"]
