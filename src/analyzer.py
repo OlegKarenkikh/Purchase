@@ -4,17 +4,18 @@
 Модуль анализа закупочной документации
 
 Использует LLM для извлечения требований к документам из закупочной документации.
-Поддерживает работу с различными моделями: Claude, Qwen, DeepSeek.
+Поддерживает работу через OpenAI-совместимый API (vLLM).
 """
 
 import os
 import json
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from pathlib import Path
-import anthropic
 import PyPDF2
 import docx
+
+from src.llm.client import OpenAILikeClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,21 +26,14 @@ class DocumentAnalyzer:
     Анализатор закупочной документации с использованием LLM
     """
 
-    def __init__(self, model_name: str = "claude-3-5-sonnet-20241022", api_key: Optional[str] = None):
+    def __init__(self, llm_client: Optional[OpenAILikeClient] = None):
         """
         Инициализация анализатора
         
         Args:
-            model_name: Название модели LLM
-            api_key: API ключ для доступа к модели
+            llm_client: Клиент LLM (по умолчанию OpenAILikeClient из окружения)
         """
-        self.model_name = model_name
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        
-        if "claude" in model_name.lower():
-            self.client = anthropic.Anthropic(api_key=self.api_key)
-        else:
-            raise ValueError(f"Модель {model_name} пока не поддерживается")
+        self.llm_client = llm_client or OpenAILikeClient()
         
         # Загрузка промпта
         self.system_prompt = self._load_prompt()
@@ -125,17 +119,22 @@ class DocumentAnalyzer:
         user_message += "\n\nВыполни полный анализ и предоставь результат в указанном JSON формате."
         
         try:
-            response = self.client.messages.create(
-                model=self.model_name,
-                max_tokens=8000,
-                temperature=0.7,
-                system=self.system_prompt,
-                messages=[
-                    {"role": "user", "content": user_message}
-                ]
-            )
+            # Формирование messages в OpenAI-формате
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_message}
+            ]
             
-            result_text = response.content[0].text
+            # Вызов LLM через OpenAI-совместимый клиент
+            result_text = self.llm_client.chat_completion(
+                messages=messages,
+                temperature=0.7,
+                top_p=0.9,
+                max_tokens=4096,
+                presence_penalty=0.6,
+                frequency_penalty=0.8,
+                response_format={"type": "json_object"}  # Строгий JSON-вывод
+            )
             
             # Извлечение JSON из ответа
             json_start = result_text.find('{')
