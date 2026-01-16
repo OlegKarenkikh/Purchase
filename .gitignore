@@ -11,6 +11,8 @@ ENV/
 
 # Models
 models/
+!src/models/
+!src/models/*.py
 *.bin
 *.safetensors
 *.gguf

@@ -98,6 +98,15 @@ class DocumentAnalyzer:
         """
         logger.info(f"Starting analysis of {len(doc_text)} characters")
         start_time = time.time()
+
+        if not doc_text.strip():
+            return {
+                "procurement_info": {},
+                "required_documents": [],
+                "total_count": 0,
+                "analysis_time": 0,
+                "model_size": self.model_size,
+            }
         
         try:
             # Установка timeout
@@ -200,6 +209,9 @@ class DocumentAnalyzer:
             # Нормализация названия
             name_normalized = doc["name"].lower().strip()
             name_normalized = re.sub(r'\s+', ' ', name_normalized)  # Удаление лишних пробелов
+
+            if not name_normalized:
+                continue
             
             # Проверка точного совпадения
             if name_normalized in seen:

@@ -4,13 +4,15 @@
 Модели данных для АИС УДЗ
 """
 
-from .document import Document, DocumentRequirement, DocumentCategory
 from .analysis import Analysis, AnalysisResult
 from .company import Company
+from .document import Document, DocumentCategory, DocumentRequirement
 
 __all__ = [
-    "Document",
+    "Analysis",
+    "AnalysisResult",
     "Company",
-    "ParseResult",
-    "AnalysisResult"
+    "Document",
+    "DocumentCategory",
+    "DocumentRequirement",
 ]
