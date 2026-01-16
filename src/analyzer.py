@@ -10,8 +10,10 @@
 import os
 import json
 import logging
+import re
 from typing import Dict, List, Optional
 from pathlib import Path
+from difflib import SequenceMatcher
 import PyPDF2
 import docx
 
@@ -26,14 +28,45 @@ class DocumentAnalyzer:
     Анализатор закупочной документации с использованием LLM
     """
 
-    def __init__(self, llm_client: Optional[OpenAILikeClient] = None):
+    # Константы
+    MAX_DOCUMENTS = 50  # Максимальное количество документов
+    SIMILARITY_THRESHOLD = 0.85  # Порог сходства для дубликатов
+
+    # Параметры генерации для малых моделей (для справки и будущего использования)
+    GENERATION_PARAMS_SMALL = {
+        "temperature": 0.7,
+        "repetition_penalty": 1.4,
+        "frequency_penalty": 0.9,
+        "presence_penalty": 0.7,
+        "max_tokens": 4096,
+        "top_p": 0.9,
+    }
+
+    # Параметры для больших моделей
+    GENERATION_PARAMS_LARGE = {
+        "temperature": 0.5,
+        "repetition_penalty": 1.2,
+        "max_tokens": 8192,
+        "top_p": 0.95,
+    }
+
+    def __init__(self, llm_client: Optional[OpenAILikeClient] = None, model_size: str = "large"):
         """
         Инициализация анализатора
         
         Args:
             llm_client: Клиент LLM (по умолчанию OpenAILikeClient из окружения)
+            model_size: Размер модели ('small' для 4B-7B, 'large' для >7B).
+                        Влияет на параметры генерации.
         """
         self.llm_client = llm_client or OpenAILikeClient()
+        self.model_size = model_size
+
+        # Выбор параметров генерации
+        self.generation_params = (
+            self.GENERATION_PARAMS_SMALL if model_size == "small"
+            else self.GENERATION_PARAMS_LARGE
+        )
         
         # Загрузка промпта
         self.system_prompt = self._load_prompt()
@@ -108,6 +141,14 @@ class DocumentAnalyzer:
         Returns:
             Структурированный результат анализа в формате JSON
         """
+        # Если текст пустой, возвращаем пустой результат (важно для тестов)
+        if not document_text.strip():
+             return {
+                "procurement_info": {},
+                "required_documents": [],
+                "total_count": 0
+            }
+
         user_message = f"""
 Закупочная документация:
 {document_text}
@@ -125,15 +166,21 @@ class DocumentAnalyzer:
                 {"role": "user", "content": user_message}
             ]
             
-            # Вызов LLM через OpenAI-совместимый клиент
+            # Используем параметры из generation_params, но с возможностью переопределения response_format
+            params = self.generation_params.copy()
+            params["response_format"] = {"type": "json_object"} # Всегда требуем JSON
+
+            # Удаляем параметры, которые не поддерживаются методом chat_completion напрямую, если они там есть
+            # OpenAILikeClient.chat_completion принимает явные аргументы, нужно передать их
+
             result_text = self.llm_client.chat_completion(
                 messages=messages,
-                temperature=0.7,
-                top_p=0.9,
-                max_tokens=4096,
-                presence_penalty=0.6,
-                frequency_penalty=0.8,
-                response_format={"type": "json_object"}  # Строгий JSON-вывод
+                temperature=params.get("temperature", 0.7),
+                top_p=params.get("top_p", 0.9),
+                max_tokens=params.get("max_tokens", 4096),
+                presence_penalty=params.get("presence_penalty", 0.6),
+                frequency_penalty=params.get("frequency_penalty", 0.8),
+                response_format=params["response_format"]
             )
             
             # Извлечение JSON из ответа
@@ -146,12 +193,80 @@ class DocumentAnalyzer:
             else:
                 raise ValueError("JSON не найден в ответе модели")
             
+            # Дедупликация
+            if "required_documents" in result:
+                result["required_documents"] = self._deduplicate_documents(
+                    result["required_documents"]
+                )
+
+                # Ограничение количества
+                if len(result["required_documents"]) > self.MAX_DOCUMENTS:
+                    logger.warning(
+                        f"Truncating documents from {len(result['required_documents'])} "
+                        f"to {self.MAX_DOCUMENTS}"
+                    )
+                    result["required_documents"] = result["required_documents"][:self.MAX_DOCUMENTS]
+
+            result["total_count"] = len(result.get("required_documents", []))
+            result["model_size"] = self.model_size
+
             return result
             
         except Exception as e:
             logger.error(f"Ошибка анализа: {e}")
+            # Возвращаем структуру с ошибкой или пустую структуру, чтобы не ронять приложение
+            # Но для сохранения совместимости с API возвращаем то что получилось или ошибку raise
+            # В данном случае лучше выбросить исключение, чтобы вызывающий код знал о проблеме
             raise
     
+    def _deduplicate_documents(self, documents: List[Dict]) -> List[Dict]:
+        """
+        Удаление дубликатов по названию
+
+        Args:
+            documents: Список документов
+
+        Returns:
+            Уникальные документы
+        """
+        seen = {}
+        unique = []
+
+        for doc in documents:
+            if not isinstance(doc, dict) or "name" not in doc:
+                continue
+
+            # Нормализация названия
+            name_normalized = doc["name"].lower().strip()
+            name_normalized = re.sub(r'\s+', ' ', name_normalized)  # Удаление лишних пробелов
+
+            if not name_normalized:
+                continue
+
+            # Проверка точного совпадения
+            if name_normalized in seen:
+                logger.debug(f"Exact duplicate found: {doc['name']}")
+                continue
+
+            # Проверка на похожие названия
+            is_similar = False
+            for existing_name in seen.keys():
+                similarity = SequenceMatcher(None, name_normalized, existing_name).ratio()
+                if similarity > self.SIMILARITY_THRESHOLD:
+                    logger.debug(
+                        f"Similar duplicate found: '{doc['name']}' ~ '{seen[existing_name]['name']}' "
+                        f"(similarity: {similarity:.2f})"
+                    )
+                    is_similar = True
+                    break
+
+            if not is_similar:
+                seen[name_normalized] = doc
+                unique.append(doc)
+
+        logger.info(f"Deduplication: {len(documents)} -> {len(unique)} documents")
+        return unique
+
     def verify_documents(self, required: List[Dict], provided: List[str]) -> Dict:
         """
         Сверка предоставленных документов с требованиями

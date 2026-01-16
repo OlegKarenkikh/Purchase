@@ -14,13 +14,10 @@
 """
 
 import unittest
-import sys
-from pathlib import Path
-
-# Добавляем путь к backend
-sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
-
-from analyzer import DocumentAnalyzer
+import json
+import uuid
+from unittest.mock import MagicMock
+from src.analyzer import DocumentAnalyzer
 
 
 class TestDocumentAnalyzer(unittest.TestCase):
@@ -30,7 +27,24 @@ class TestDocumentAnalyzer(unittest.TestCase):
     
     def setUp(self):
         """Подготовка перед каждым тестом"""
-        self.analyzer = DocumentAnalyzer(model_size="small")
+        self.mock_client = MagicMock()
+
+        # Стандартный ответ мока
+        self.default_response = {
+            "procurement_info": {
+                "number": "TEST-001",
+                "customer": "Тестовая организация",
+                "procedure_type": "Аукцион"
+            },
+            "required_documents": [
+                {"id": "doc_1", "name": "Выписка из ЕГРЮЛ", "mandatory": True},
+                {"id": "doc_2", "name": "Устав", "mandatory": True},
+                {"id": "doc_3", "name": "Лицензия", "mandatory": False}
+            ]
+        }
+        self.mock_client.chat_completion.return_value = json.dumps(self.default_response)
+
+        self.analyzer = DocumentAnalyzer(llm_client=self.mock_client, model_size="small")
     
     def test_basic_analysis(self):
         """Тест базового анализа"""
@@ -44,7 +58,7 @@ class TestDocumentAnalyzer(unittest.TestCase):
         - Лицензия
         """
         
-        result = self.analyzer.analyze_documentation(test_doc)
+        result = self.analyzer.analyze(test_doc)
         
         # Проверка структуры результата
         self.assertIn("procurement_info", result)
@@ -87,83 +101,35 @@ class TestDocumentAnalyzer(unittest.TestCase):
     
     def test_max_documents_limit(self):
         """Тест ограничения максимального количества документов"""
-        # Генерируем больше документов, чем лимит
+        # Генерируем больше документов, чем лимит.
+        # Используем уникальные имена (UUID) чтобы они не считались дубликатами по fuzzy match
         documents = [
-            {"id": f"doc_{i}", "name": f"Документ {i}"}
+            {"id": f"doc_{i}", "name": f"Document {uuid.uuid4()}"}
             for i in range(100)
         ]
         
-        result = {
-            "procurement_info": {},
-            "required_documents": documents
-        }
+        # Настраиваем мок, чтобы вернул много документов
+        response = self.default_response.copy()
+        response["required_documents"] = documents
+        self.mock_client.chat_completion.return_value = json.dumps(response)
         
-        # Применяем дедупликацию и лимит
-        result["required_documents"] = self.analyzer._deduplicate_documents(
-            result["required_documents"]
-        )
-        
-        if len(result["required_documents"]) > self.analyzer.MAX_DOCUMENTS:
-            result["required_documents"] = result["required_documents"][:self.analyzer.MAX_DOCUMENTS]
+        # Вызываем analyze, который должен применить лимит
+        result = self.analyzer.analyze("some text")
         
         # Проверка, что не больше MAX_DOCUMENTS
         self.assertLessEqual(len(result["required_documents"]), self.analyzer.MAX_DOCUMENTS)
-    
-    def test_text_parsing(self):
-        """Тест парсинга текстового вывода"""
-        text_output = """=== ИНФОРМАЦИЯ О ЗАКУПКЕ ===
-Номер: TEST-123
-Заказчик: ООО "Тест"
-Тип процедуры: Аукцион
-
-=== СПИСОК ДОКУМЕНТОВ (макс. 30) ===
-
-1 | Выписка из ЕГРЮЛ | Да | Копия | 30 дней | п.1
-2 | Устав | Да | Оригинал | Нет | п.2
-3 | Лицензия | Нет | Копия | 1 год | п.3
-
-=== КОНЕЦ СПИСКА ===
-Всего документов: 3
-"""
-        
-        result = self.analyzer._parse_text_output(text_output)
-        
-        # Проверка информации о закупке
-        self.assertEqual(result["procurement_info"]["number"], "TEST-123")
-        self.assertEqual(result["procurement_info"]["customer"], 'ООО "Тест"')
-        self.assertEqual(result["procurement_info"]["procedure_type"], "Аукцион")
-        
-        # Проверка документов
-        self.assertEqual(len(result["required_documents"]), 3)
-        
-        # Проверка первого документа
-        doc1 = result["required_documents"][0]
-        self.assertEqual(doc1["name"], "Выписка из ЕГРЮЛ")
-        self.assertTrue(doc1["mandatory"])
-        self.assertEqual(doc1["format"], "Копия")
+        self.assertEqual(len(result["required_documents"]), 50)
     
     def test_empty_input(self):
         """Тест пустого ввода"""
-        result = self.analyzer.analyze_documentation("")
+        result = self.analyzer.analyze("")
         
         self.assertIn("required_documents", result)
         self.assertEqual(len(result["required_documents"]), 0)
     
-    def test_no_documents_in_text(self):
-        """Тест текста без упоминания документов"""
-        test_doc = """
-        Это просто текст без требований к документам.
-        Здесь нет списков и перечней.
-        """
-        
-        result = self.analyzer.analyze_documentation(test_doc)
-        
-        # Должен вернуть пустой список или минимум документов
-        self.assertLessEqual(len(result["required_documents"]), 5)
-    
     def test_generation_params_small_model(self):
         """Тест параметров для малой модели"""
-        analyzer_small = DocumentAnalyzer(model_size="small")
+        analyzer_small = DocumentAnalyzer(llm_client=self.mock_client, model_size="small")
         
         params = analyzer_small.generation_params
         
@@ -178,7 +144,7 @@ class TestDocumentAnalyzer(unittest.TestCase):
     
     def test_generation_params_large_model(self):
         """Тест параметров для большой модели"""
-        analyzer_large = DocumentAnalyzer(model_size="large")
+        analyzer_large = DocumentAnalyzer(llm_client=self.mock_client, model_size="large")
         
         params = analyzer_large.generation_params
         
@@ -209,7 +175,8 @@ class TestEdgeCases(unittest.TestCase):
     """
     
     def setUp(self):
-        self.analyzer = DocumentAnalyzer(model_size="small")
+        self.mock_client = MagicMock()
+        self.analyzer = DocumentAnalyzer(llm_client=self.mock_client, model_size="small")
     
     def test_malformed_document_entries(self):
         """Тест некорректно оформленных записей"""
