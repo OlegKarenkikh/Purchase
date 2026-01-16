@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АИС УДЗ - Система управления документами закупок</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="8" fill="#4F46E5"/>
+                        <path d="M8 10h16M8 16h12M8 22h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>АИС УДЗ</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="analysis">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Анализ КД</span>
+                </a>
+                <a href="#" class="nav-item" data-page="registry">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Реестр документов</span>
+                </a>
+                <a href="#" class="nav-item" data-page="packages">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    <span>Пакеты</span>
+                </a>
+                <a href="#" class="nav-item" data-page="control">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <span>Контроль</span>
+                </a>
+                <a href="#" class="nav-item" data-page="reports">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    <span>Отчеты</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/api/docs" target="_blank" class="nav-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>API Docs</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="page-title">Анализ закупочной документации</h1>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator" id="status-indicator">
+                        <span class="status-dot"></span>
+                        <span>Система готова</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+                <!-- Analysis Page -->
+                <div id="page-analysis" class="page active">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Загрузка документации</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="upload-area" id="upload-area">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                <p>Перетащите файл сюда или нажмите для выбора</p>
+                                <p class="upload-hint">Поддерживаются: PDF, DOCX, TXT</p>
+                                <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt" hidden>
+                            </div>
+
+                            <div class="divider">
+                                <span>или</span>
+                            </div>
+
+                            <div class="text-input-area">
+                                <label for="text-input">Вставьте текст документации:</label>
+                                <textarea id="text-input" rows="8" placeholder="Вставьте текст закупочной документации..."></textarea>
+                            </div>
+
+                            <button class="btn btn-primary btn-lg" id="analyze-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                Анализировать
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="card" id="results-card" style="display: none;">
+                        <div class="card-header">
+                            <h2>Результаты анализа</h2>
+                            <div class="card-actions">
+                                <button class="btn btn-outline" id="export-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    Экспорт
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Procurement Info -->
+                            <div class="info-section" id="procurement-info"></div>
+
+                            <!-- Statistics -->
+                            <div class="stats-grid" id="stats-grid"></div>
+
+                            <!-- Documents List -->
+                            <div class="documents-section">
+                                <h3>Требуемые документы</h3>
+                                <div class="table-container">
+                                    <table class="data-table" id="documents-table">
+                                        <thead>
+                                            <tr>
+                                                <th>№</th>
+                                                <th>Наименование</th>
+                                                <th>Категория</th>
+                                                <th>Обязательный</th>
+                                                <th>Формат</th>
+                                                <th>Срок действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registry Page -->
+                <div id="page-registry" class="page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Реестр документов компании</h2>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" id="add-doc-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Добавить документ
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="filters">
+                                <input type="text" id="registry-search" placeholder="Поиск документа..." class="input">
+                                <select id="registry-category" class="select">
+                                    <option value="">Все категории</option>
+                                    <option value="registration">Регистрационные</option>
+                                    <option value="financial">Финансовые</option>
+                                    <option value="license">Лицензии и разрешения</option>
+                                    <option value="experience">Опыт и квалификация</option>
+                                </select>
+                                <select id="registry-status" class="select">
+                                    <option value="">Все статусы</option>
+                                    <option value="valid">Действующие</option>
+                                    <option value="expiring_soon_30d">Истекающие (30 дней)</option>
+                                    <option value="expired">Истекшие</option>
+                                </select>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table" id="registry-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Наименование</th>
+                                            <th>Категория</th>
+                                            <th>Статус</th>
+                                            <th>Срок действия</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Packages Page -->
+                <div id="page-packages" class="page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Формирование пакетов документов</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Выберите закупку для формирования пакета документов.</p>
+                            <div class="empty-state">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                </svg>
+                                <h3>Нет активных пакетов</h3>
+                                <p>Начните с анализа закупочной документации</p>
+                                <button class="btn btn-primary" onclick="showPage('analysis')">
+                                    Перейти к анализу
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Page -->
+                <div id="page-control" class="page">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Многоэтапный контроль</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="control-stages" id="control-stages">
+                                <!-- Stages will be loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Page -->
+                <div id="page-reports" class="page">
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-total">0</div>
+                                <div class="stat-label">Всего закупок</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-success">0%</div>
+                                <div class="stat-label">Успешность</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-time">0ч</div>
+                                <div class="stat-label">Среднее время</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Аналитика и отчеты</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="reports-list">
+                                <a href="#" class="report-item" onclick="generateReport('procurement')">
+                                    <div class="report-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="report-info">
+                                        <h4>Отчет по закупкам</h4>
+                                        <p>Статистика по закупкам за период</p>
+                                    </div>
+                                </a>
+                                <a href="#" class="report-item" onclick="generateReport('rejection')">
+                                    <div class="report-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="15" y1="9" x2="9" y2="15"/>
+                                            <line x1="9" y1="9" x2="15" y2="15"/>
+                                        </svg>
+                                    </div>
+                                    <div class="report-info">
+                                        <h4>Отчет по отклонениям</h4>
+                                        <p>Анализ причин отклонения заявок</p>
+                                    </div>
+                                </a>
+                                <a href="#" class="report-item" onclick="generateReport('timing')">
+                                    <div class="report-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                    </div>
+                                    <div class="report-info">
+                                        <h4>Отчет по срокам</h4>
+                                        <p>Время подготовки заявок</p>
+                                    </div>
+                                </a>
+                                <a href="#" class="report-item" onclick="generateReport('documents')">
+                                    <div class="report-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="report-info">
+                                        <h4>Отчет по документам</h4>
+                                        <p>Часто отсутствующие документы</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Загрузка...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
