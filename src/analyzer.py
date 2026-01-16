@@ -143,7 +143,7 @@ class DocumentAnalyzer:
         """
         # Если текст пустой, возвращаем пустой результат (важно для тестов)
         if not document_text.strip():
-             return {
+            return {
                 "procurement_info": {},
                 "required_documents": [],
                 "total_count": 0
@@ -155,7 +155,8 @@ class DocumentAnalyzer:
 """
         
         if provided_docs:
-            user_message += f"\n\nУже предоставленные документы:\n" + "\n".join(f"- {doc}" for doc in provided_docs)
+            docs_list = "\n".join(f"- {doc}" for doc in provided_docs)
+            user_message += f"\n\nУже предоставленные документы:\n{docs_list}"
         
         user_message += "\n\nВыполни полный анализ и предоставь результат в указанном JSON формате."
         
@@ -168,7 +169,7 @@ class DocumentAnalyzer:
             
             # Используем параметры из generation_params, но с возможностью переопределения response_format
             params = self.generation_params.copy()
-            params["response_format"] = {"type": "json_object"} # Всегда требуем JSON
+            params["response_format"] = {"type": "json_object"}  # Всегда требуем JSON
 
             # Удаляем параметры, которые не поддерживаются методом chat_completion напрямую, если они там есть
             # OpenAILikeClient.chat_completion принимает явные аргументы, нужно передать их

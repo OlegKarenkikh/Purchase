@@ -118,8 +118,8 @@ class ReportGenerator:
             return items
         return [
             i for i in items
-            if (not start or i.get("created_at", "") >= start) and
-               (not end or i.get("created_at", "") <= end)
+            if (not start or i.get("created_at", "") >= start)
+            and (not end or i.get("created_at", "") <= end)
         ]
     
     def _count_by_field(self, items: List[Dict], field: str) -> Dict[str, int]:

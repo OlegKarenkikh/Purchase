@@ -44,4 +44,4 @@ logs/
 Thumbs.db
 
 # Docker
-.dockerignore
+.dockerignore.coverage
