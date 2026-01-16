@@ -1,0 +1,23 @@
+# Override file for development/testing without GPU
+# Usage: docker-compose up (automatically uses both files)
+
+version: '3.8'
+
+services:
+  app:
+    # Remove GPU requirements for testing
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/purchase_db
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
